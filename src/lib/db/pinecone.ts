@@ -6,7 +6,6 @@ if (!apiKey) {
 }
 
 const pinecone = new Pinecone({
-  environment: "gcp-starter",
   apiKey,
 });
 export const notesIndex = pinecone.Index("smart-note");

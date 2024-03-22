@@ -1,6 +1,9 @@
 import { CreateNoteSchema, createNoteSchema } from "@/lib/validation/note";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Note } from "@prisma/client";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import {
   Dialog,
   DialogContent,
@@ -17,25 +20,24 @@ import {
   FormMessage,
 } from "./ui/form";
 import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
 import LoadingButton from "./ui/loading-button";
-import { useRouter } from "next/navigation";
-import { Note } from "@prisma/client";
-import { useState } from "react";
+import { Textarea } from "./ui/textarea";
 
-interface AddNoteDialogProps {
+interface AddEditNoteDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
   noteToEdit?: Note;
 }
 
-export default function AddNoteDialog({
+export default function AddEditNoteDialog({
   open,
   setOpen,
   noteToEdit,
-}: AddNoteDialogProps) {
-  const [deleteInProgress, setdeleteInProgress] = useState(false);
+}: AddEditNoteDialogProps) {
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
+
   const router = useRouter();
+
   const form = useForm<CreateNoteSchema>({
     resolver: zodResolver(createNoteSchema),
     defaultValues: {
@@ -54,26 +56,26 @@ export default function AddNoteDialog({
             ...input,
           }),
         });
+        if (!response.ok) throw Error("Status code: " + response.status);
       } else {
         const response = await fetch("/api/notes", {
           method: "POST",
           body: JSON.stringify(input),
         });
-        if (!response.ok) throw Error("status code: " + response.status);
+        if (!response.ok) throw Error("Status code: " + response.status);
         form.reset();
       }
-
       router.refresh();
       setOpen(false);
     } catch (error) {
       console.error(error);
-      alert("something went wrong");
+      alert("Something went wrong. Please try again.");
     }
   }
 
   async function deleteNote() {
     if (!noteToEdit) return;
-    setdeleteInProgress(true);
+    setDeleteInProgress(true);
     try {
       const response = await fetch("/api/notes", {
         method: "DELETE",
@@ -81,14 +83,17 @@ export default function AddNoteDialog({
           id: noteToEdit.id,
         }),
       });
-      if (!response.ok) throw Error("status code: " + response.status);
+      if (!response.ok) throw Error("Status code: " + response.status);
       router.refresh();
       setOpen(false);
     } catch (error) {
       console.error(error);
-      alert("something went wrong. please try again");
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setDeleteInProgress(false);
     }
   }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
@@ -102,9 +107,9 @@ export default function AddNoteDialog({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Note Title</FormLabel>
+                  <FormLabel>Note title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Note Title" {...field} />
+                    <Input placeholder="Note title" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -115,7 +120,7 @@ export default function AddNoteDialog({
               name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Note Content</FormLabel>
+                  <FormLabel>Note content</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Note content" {...field} />
                   </FormControl>
@@ -135,7 +140,6 @@ export default function AddNoteDialog({
                   Delete note
                 </LoadingButton>
               )}
-
               <LoadingButton
                 type="submit"
                 loading={form.formState.isSubmitting}
