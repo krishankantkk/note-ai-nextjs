@@ -129,11 +129,14 @@ export async function DELETE(req: Request) {
     if (!userId || userId !== note.userId) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Wrap deletion operations in a transaction
     await prisma.$transaction(async (tx) => {
-      await tx.note.delete({ where: { id } });
+      // Delete from notesIndex first if necessary
       await notesIndex.deleteOne(id);
+      // Then delete the note from the database
+      await tx.note.delete({ where: { id } });
     });
-    await prisma.note.delete({ where: { id } });
 
     return Response.json({ message: "Note deleted" }, { status: 200 });
   } catch (error) {
