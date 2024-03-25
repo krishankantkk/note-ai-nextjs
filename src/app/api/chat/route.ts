@@ -34,6 +34,11 @@ export async function POST(req: Request) {
 
     console.log("Relevant notes found: ", relevantNotes);
 
+    type ChatCompletionMessage = {
+      role: "assistant" | "system";
+      content: string;
+    };
+
     const systemMessage: ChatCompletionMessage = {
       role: "system",
       content:
